@@ -1,0 +1,72 @@
+#pragma once
+/*
+ * CSimplex header file
+ */
+
+#include <map>
+
+#include "point.h"
+#include "region.h"
+
+namespace cubitos {
+
+class CChain;
+
+class CSimplex {
+   public:
+    CSimplex() {};
+    CSimplex(Point center, uint8_t depth, size_t dim);
+    std::vector<CSimplex> expansions(Region& region) const;
+    CChain differential() const;
+
+    // Order relationship for std::map. Doesn't have any real meaning.
+    bool operator<(const CSimplex& rhs) const;
+    bool operator==(const CSimplex& rhs) const;
+
+    size_t dim_;
+
+#ifdef DEBUG
+    friend std::ostream& operator<<(std::ostream& out,
+                                    const CSimplex& csimplex);
+    Point get_center() const { return center_; };  // for plotting
+#endif                                             // DEBUG
+
+   private:
+    void expansionsRec(Region& region,
+                       std::vector<int>::const_iterator it,
+                       std::vector<CSimplex>& expansions,
+                       std::vector<std::bitset<NUMBITS>>& coors,
+                       size_t dim) const;
+
+    bool checkSimplex(Region& region) const;
+    bool checkSimplexRecDir(Region& region,
+                            std::vector<int>::const_iterator it,
+                            std::vector<std::bitset<NUMBITS>>& coors,
+                            std::bitset<NUMBITS> offset, int k) const;
+
+    bool checkSimplexRecNonDir(Region& region,
+                               const std::vector<int>::const_iterator it,
+                               std::vector<std::bitset<NUMBITS>>& coors,
+                               std::bitset<NUMBITS> offset, int k) const;
+
+    Point center_;
+    uint8_t depth_;
+    std::vector<int> directions_, nondirections_;
+    std::vector<int> simplices;
+};
+
+struct CChain {
+    CChain();
+    CChain& operator+=(CSimplex csimplex);
+    CChain& operator-=(CSimplex csimplex);
+
+    std::map<CSimplex, int> simplices;
+};
+
+#ifdef DEBUG
+std::ostream& operator<<(std::ostream& out, const CSimplex& csimplex);
+std::ostream& operator<<(std::ostream& out, const CChain& cchain);
+
+#endif  // DEBUG
+
+}  // namespace cubitos
