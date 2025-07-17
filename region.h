@@ -1,7 +1,6 @@
 #pragma once
-/* region.h
- * Represents a region of the [0, 2^N)^n discrete space
- */
+// file: region.h
+// description: represents a region of the [0, 2^N)^n discrete space.
 
 #include "point.h"
 
@@ -9,29 +8,32 @@ namespace cubitos {
 
 class Region {
    public:
+    // Constructors
     Region();
-    Region(uint8_t depth, std::vector<Point>::iterator begin,
+    Region(size_t depth, std::vector<Point>::iterator begin,
            std::vector<Point>::iterator end);
 
-    std::vector<Point>::iterator lastPoint();
-
-    bool containsInDepth(const Point& p, uint8_t depth);
+    // Boolean function used to determine whether there a point is in subregion
+    bool containsInDepth(const Point& p, size_t depth);
 
 #ifdef DEBUG
     friend std::ostream& operator<<(std::ostream& out, const Region& r);
 #endif  // DEBUG
 
    private:
-    void subdivide();
+    inline void subdivide();
     std::vector<Region>& getSubregions();
     // Returns whether p is in this region
     bool contains(const Point& p) const;
 
-    uint8_t depth_;  // Not going to be greater than 64
+    size_t depth_;
 
+    // First and last points contained in this region
     std::vector<Point>::iterator firstPoint_, endPoint_;
 
     std::vector<Region> subregions_;
+    // The corner is stored instead of the center to reduce bit shifting
+    // operations
     Point corner_;
 
     // Degenerate regions contain only one point and do not subdivide.

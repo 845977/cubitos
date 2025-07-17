@@ -1,4 +1,5 @@
 #include "barcode.h"
+// file: barcode.cc
 
 #include <cassert>
 #include <iomanip>

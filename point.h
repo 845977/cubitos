@@ -1,7 +1,6 @@
 #pragma once
-/* point.h
- * Defines a point in a ([0, 2^N))^n discrete space
- */
+// file: point.h
+// description: Defines a point in a ([0, 2^NUMBITS))^n discrete space
 
 #include <bitset>
 #include <ostream>
@@ -18,6 +17,7 @@ struct Point {
     size_t dim_;
     std::vector<std::bitset<NUMBITS>> coors_;
 
+    // Constructors
     Point();
     Point(std::vector<std::bitset<NUMBITS>> point);
     Point(std::vector<float> coors);
@@ -27,15 +27,16 @@ struct Point {
     bool operator==(const Point& rhs) const;
     bool operator!=(const Point& rhs) const;
 
-    Point truncate(uint8_t n) const;
+    // Truncates a point to the first n bits
+    Point truncate(size_t n) const;
 
-    Point makeCenter(uint8_t depth) const;
-
-    bool hasCenter(const Point& center, uint8_t depth) const;
-    bool equalsTruncated(const Point& center, uint8_t depth) const;
-    void directions(uint8_t depth, std::vector<int>& directions,
+    bool equalsTruncated(const Point& center, size_t depth) const;
+    // Computes directions and non-directions for the simplex (where the
+    //  simplex can expand and where not).
+    void directions(size_t depth, std::vector<int>& directions,
                     std::vector<int>& nondirections) const;
-    uint8_t depthAsCenter() const;
+    // Returns the depth of this point as a center in the mesh
+    size_t depthAsCenter() const;
 };
 
 #ifdef DEBUG

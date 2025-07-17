@@ -5,7 +5,7 @@ using namespace cubitos;
 Region::Region() : isDegenerate_(false) {}
 
 // Pre: begin matches an existing point
-Region::Region(uint8_t depth, std::vector<Point>::iterator begin,
+Region::Region(size_t depth, std::vector<Point>::iterator begin,
                std::vector<Point>::iterator end)
     : depth_(depth), firstPoint_(begin), isDegenerate_(false) {
     corner_ = firstPoint_->truncate(depth_);
@@ -24,7 +24,7 @@ bool Region::contains(const Point& p) const {
 }
 
 // Pre: p is in this region
-bool Region::containsInDepth(const Point& p, uint8_t depth) {
+bool Region::containsInDepth(const Point& p, size_t depth) {
     if (depth == depth_) {
         return true;
     }
@@ -39,7 +39,7 @@ bool Region::containsInDepth(const Point& p, uint8_t depth) {
     return false;
 }
 
-inline std::vector<Region>& Region::getSubregions() {
+std::vector<Region>& Region::getSubregions() {
     if (subregions_.size() == 0) {
         subdivide();
     }
@@ -58,7 +58,7 @@ void Region::subdivide() {
 #ifdef DEBUG
 std::ostream& cubitos::operator<<(std::ostream& out, const Region& r) {
     std::string tab = "";
-    for (int i = 0; i < r.depth_; i++) {
+    for (size_t i = 0; i < r.depth_; i++) {
         tab += "  ";
     }
     out << tab << "Region {";

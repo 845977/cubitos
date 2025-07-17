@@ -1,7 +1,6 @@
 #pragma once
-/* 
- * file: algorithms/reductions.h
- */
+// file: algorithms/reductions.h
+// description: implements column and row echelonizers for smatrix
 
 #include "../smatrix.h"
 
@@ -11,14 +10,23 @@ namespace cubitos {
  * https://www.jeremykun.com/2013/04/10/computing-homology/
  */
 
-template <size_t _N, bool _EnableComplementary>
-void rowReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& P, SMatrix<_N>& P_inv) {
-    auto field = SMatrix<_N>::field_;
+template <
+    size_t _N, 
+    bool _EnableComplementary
+>
+inline void 
+rowReduce(SMatrix<_N>& A,
+        SMatrix<_N>* B,
+        SMatrix<_N>& P,
+        SMatrix<_N>& P_inv,
+        size_t& i
+        ) {
+    auto& field = SMatrix<_N>::field_;
 
     size_t numRows = A.n_, numCols = A.m_;
 
     /* Row echelonizes A into P A */
-    for (size_t i = 0, j= 0; i < numRows && j < numCols;) {
+    for (size_t j = 0; i < numRows && j < numCols;) {
         size_t nonzeroRow = i;
         for (; nonzeroRow < numRows && field.isZero(A.get(nonzeroRow, j));
              nonzeroRow++);
@@ -29,7 +37,7 @@ void rowReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& P, SMatrix<_N>& P_in
             A.rowSwap(i, nonzeroRow);
             P.rowSwap(i, nonzeroRow);
             if constexpr (_EnableComplementary) {
-                B.colSwap(i, nonzeroRow);
+                B->colSwap(i, nonzeroRow);
             }
             P_inv.colSwap(i, nonzeroRow);
         }
@@ -47,7 +55,7 @@ void rowReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& P, SMatrix<_N>& P_in
                 P_inv.colCombine(i, otherRow, c);
                 // If we have set a complementary matrix
                 if constexpr (_EnableComplementary) {
-                    B.colCombine(i, otherRow, c);
+                    B->colCombine(i, otherRow, c);
                 }
             }
         }
@@ -56,13 +64,22 @@ void rowReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& P, SMatrix<_N>& P_in
     }
 }
 
-template <size_t _N, bool _EnableComplementary>
-void columnReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& Q, SMatrix<_N>& Q_inv) {
-    auto field = SMatrix<_N>::field_;
+template <
+    size_t _N, 
+    bool _EnableComplementary
+>
+inline void 
+columnReduce(SMatrix<_N>& A, 
+        SMatrix<_N>* B, 
+        SMatrix<_N>& Q, 
+        SMatrix<_N>& Q_inv,
+        size_t& j
+        ) {
+    auto& field = SMatrix<_N>::field_;
     size_t numRows = A.n_, numCols = A.m_;
 
     /* Column echelonizes A into A Q */
-    for (size_t i = 0, j = 0; i < numRows && j < numCols;) {
+    for (size_t i = 0; i < numRows && j < numCols;) {
         size_t nonzeroCol = j;
         for (; nonzeroCol < numCols && field.isZero(A.get(i, nonzeroCol));
              nonzeroCol++);
@@ -74,7 +91,7 @@ void columnReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& Q, SMatrix<_N>& Q
             A.colSwap(j, nonzeroCol);
             Q.colSwap(j, nonzeroCol);
             if constexpr (_EnableComplementary) {
-                B.rowSwap(j, nonzeroCol);
+                B->rowSwap(j, nonzeroCol);
             }
             Q_inv.rowSwap(j, nonzeroCol);
         }
@@ -91,7 +108,7 @@ void columnReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& Q, SMatrix<_N>& Q
                 field.negin(c);
                 // If we have set a complementary matrix
                 if constexpr (_EnableComplementary) {
-                    B.rowCombine(j, otherCol, c);
+                    B->rowCombine(j, otherCol, c);
                 }
                 Q_inv.rowCombine(j, otherCol, c);
             }
@@ -102,43 +119,48 @@ void columnReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& Q, SMatrix<_N>& Q
 }
 
 template <size_t _N>
-void columnReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& Q, SMatrix<_N>& Q_inv) {
-    columnReduce<_N, true>(A, B, Q, Q_inv);
-}
-
-template <size_t _N>
-void columnReduce(SMatrix<_N>& A, SMatrix<_N>& Q, SMatrix<_N>& Q_inv) {
-    static SMatrix<_N> dummy = SMatrix<_N>::zeroMatrix();
+inline void 
+columnReduce(SMatrix<_N>& A, 
+        SMatrix<_N>& Q, 
+        SMatrix<_N>& Q_inv,
+        size_t& firstHomologyIndex
+        ) {
     Q = SMatrix<_N>::identity(A.m_);
     Q_inv = SMatrix<_N>::identity(A.m_);
-
-    columnReduce<_N, false>(A, dummy, Q, Q_inv);
+    firstHomologyIndex = 0;
+    columnReduce<_N, false>(A, nullptr, Q, Q_inv, firstHomologyIndex);
 }
 
 template <size_t _N>
-void rowReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& Q, SMatrix<_N>& Q_inv) {
-    rowReduce<_N, true>(A, B, Q, Q_inv);
-}
-
-template <size_t _N>
-void rowReduce(SMatrix<_N>& A, SMatrix<_N>& P, SMatrix<_N>& P_inv) {
-    static SMatrix<_N> dummy = SMatrix<_N>::zeroMatrix();
+inline void 
+rowReduce(SMatrix<_N>& A, 
+        SMatrix<_N>& P, 
+        SMatrix<_N>& P_inv,
+        size_t& firstHomologyIndex
+        ) {
     P = SMatrix<_N>::identity(A.n_);
     P_inv = SMatrix<_N>::identity(A.n_);
-
-    rowReduce<_N, false>(A, dummy, P, P_inv);
+    firstHomologyIndex = 0;
+    rowReduce<_N, false>(A, nullptr, P, P_inv, firstHomologyIndex);
 }
 
 template <size_t _N>
-void simultaneousReduce(SMatrix<_N>& A, SMatrix<_N>& B, SMatrix<_N>& R,
-                        SMatrix<_N>& R_inv) {
+inline void 
+simultaneousReduce(SMatrix<_N>& A, 
+        SMatrix<_N>& B, 
+        SMatrix<_N>& R,
+        SMatrix<_N>& R_inv,
+        size_t& firstHomologyIndex
+        ) {
     assert(A.m_ == B.n_);
 
     R = SMatrix<_N>::identity(A.m_);
     R_inv = SMatrix<_N>::identity(A.m_);
 
-    columnReduce(A, B, R, R_inv);
-    rowReduce(B, A, R_inv, R);
+    firstHomologyIndex = 0;
+
+    columnReduce<_N, true>(A, &B, R, R_inv, firstHomologyIndex);
+    rowReduce<_N, true>(B, &A, R_inv, R, firstHomologyIndex);
 }
 
 }  // namespace cubitos

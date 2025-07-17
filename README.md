@@ -5,6 +5,7 @@ homología persistente cúbica** en la facultad de ciencias de la Universidad de
 Zaragoza.
 
 *Alumno*: Jaime Alconchel Gallego
+
 *Directores*: Álvaro Lozano Rojo y Miguel Ángel Marco Buzunáriz
 
 ## Finalidad
@@ -17,9 +18,16 @@ cúbicos relacionados por expansiones e imprime su código de barras.
 > linbox, givaro, flint, ntl, iml
 
 Debian:
-> # apt install liblinbox-dev libgivaro-dev libflint-dev libntl-dev libiml-dev
+
+```
+# apt install liblinbox-dev libgivaro-dev libflint-dev libntl-dev libiml-dev
+```
+
 Arch Linux
-> # pacman -S linbox givaro flint ntl iml
+
+```
+# pacman -S linbox givaro flint ntl iml
+```
 
 ## Compilación
 
@@ -27,5 +35,7 @@ Arch Linux
 
 ## Uso
 
-> ./cubitos <point cloud file> <maxdepth>
+```
+./cubitos <point cloud file> <maxdepth>
+```
 

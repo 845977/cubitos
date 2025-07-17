@@ -1,7 +1,6 @@
 #pragma once
-/* file: module.h
- * description: Code for a persistent module
- */
+// file: module.h
+// description: Code for a persistent module
 
 #include <cassert>
 #include <vector>
@@ -23,7 +22,7 @@ class Module {
                    .R_inv = SMatrix<_N>::identity(1),
                    // The trivial empty collapse map
                    .inducedMap = SMatrix<_N>(1, 1),
-                   .kernelMinusImage = {0}};
+                   .firstHomologyIndex = 0};
         Depth depth = {{dim}};
         depths_.push_back(depth);
     }
@@ -69,13 +68,13 @@ class Module {
         return depths_[depth].dimensions[dim].inducedMap;
     }
 
-    void addToLevel(uint8_t depth) {
+    inline void addToLevel(size_t depth) {
         while (depths_.size() <= depth) {
             addLevel();
         }
     }
 
-    // Expands the module to a greater depth
+    // Expands the module to a greater depth using Algorithm 1
     void addLevel() {
         Dim dimension;
         Depth currentDepth;
@@ -83,90 +82,78 @@ class Module {
         CComplex prevComplex = lastComplex_;
         lastComplex_ = lastComplex_.expand();
         maxDim_ = std::max(maxDim_, lastComplex_.dim_);
-        auto complex = lastComplex_;
+        auto& complex = lastComplex_;
+
+        size_t firstHomologyIndex;
 
         SMatrix<_N> A, B, R, R_inv;
 
         if (complex.dim_ > 0) {
             A = diffMat(complex, 1);
-            rowReduce(A, R, R_inv);
-            dimension = {.R = R_inv, .R_inv = R};
-            auto im_locations = A.pivots();
-            for (size_t c = 0; c < complex.numSimplicesIn(0); c++) {
-                if (std::find(im_locations.begin(), im_locations.end(), c) ==
-                    im_locations.end()) {
-                    dimension.kernelMinusImage.push_back(c);
-                }
-            }
+            rowReduce(A, R, R_inv, firstHomologyIndex);
+            dimension = {.R = R_inv,
+                         .R_inv = R,
+                         .firstHomologyIndex = firstHomologyIndex};
             currentDepth.dimensions.push_back(dimension);
 
             B = A;
             for (size_t dim = 1; dim < complex.dim_; dim++) {
                 A = diffMat(complex, dim + 1);
-                simultaneousReduce(B, A, R, R_inv);
+                simultaneousReduce(B, A, R, R_inv, firstHomologyIndex);
 
-                auto im_locations = A.pivots();
-                auto ker_locations = B.emptyCols();
-
-                dimension = {.R = R, .R_inv = R_inv};
-                for (const auto& c : ker_locations) {
-                    if (std::find(im_locations.begin(), im_locations.end(),
-                                  c) == im_locations.end()) {
-                        dimension.kernelMinusImage.push_back(c);
-                    }
-                }
+                dimension = {.R = R,
+                             .R_inv = R_inv,
+                             .firstHomologyIndex = firstHomologyIndex};
                 currentDepth.dimensions.push_back(dimension);
                 B = A;
             }
 
             B = diffMat(complex, complex.dim_);
-            columnReduce(B, R, R_inv);
-            dimension = {.R = R, .R_inv = R_inv};
-            for (const auto& c : B.emptyCols()) {
-                dimension.kernelMinusImage.push_back(c);
-            }
+            columnReduce(B, R, R_inv, firstHomologyIndex);
+            dimension = {.R = R,
+                         .R_inv = R_inv,
+                         .firstHomologyIndex = firstHomologyIndex};
             currentDepth.dimensions.push_back(dimension);
         } else {  // All simplices are in the homology group, i.e. trivial
                   // case 0 <- C_0 <- 0
             dimension = {
                 .R = SMatrix<_N>::identity(complex.numSimplicesIn(0)),
                 .R_inv = SMatrix<_N>::identity(complex.numSimplicesIn(0)),
-            };
-            for (size_t c = 0; c < complex.numSimplicesIn(0); c++) {
-                dimension.kernelMinusImage.push_back(c);
-            }
+                .firstHomologyIndex = 0};
             currentDepth.dimensions.push_back(dimension);
         }
 
         for (size_t dim = 0; dim < currentDepth.dimensions.size(); dim++) {
             auto matrix_map = getCollapsingMatrix(complex, prevComplex, dim);
-            if (currentDepth.dimensions[dim].kernelMinusImage.size() == 0 ||
+            if (currentDepth.dimensions[dim].firstHomologyIndex ==
+                    complex.numSimplicesIn(dim) ||
                 matrix_map.isNull()) {
                 // The domain and image spaces are emptysets. Even though
                 // it would be (0), we store it as null
                 currentDepth.dimensions[dim].inducedMap =
                     SMatrix<_N>::zeroMatrix();
             } else if (dim >= depths_.back().dimensions.size() ||
-                       depths_.back()
-                               .dimensions[dim]
-                               .kernelMinusImage.size() == 0) {
+                       depths_.back().dimensions[dim].firstHomologyIndex ==
+                           prevComplex.numSimplicesIn(dim)) {
                 // The image space is emptyset, so we want a matrix with
                 // a single row of zeroes
                 currentDepth.dimensions[dim].inducedMap = SMatrix<_N>(
-                    1, currentDepth.dimensions[dim].kernelMinusImage.size());
+                    1, complex.numSimplicesIn(dim) -
+                           currentDepth.dimensions[dim].firstHomologyIndex);
             } else {
                 // The complete calculation for the induced map
                 matrix_map.rightMulIn(currentDepth.dimensions[dim].R);
                 matrix_map.leftMulIn(depths_.back().dimensions[dim].R_inv);
                 currentDepth.dimensions[dim].inducedMap = matrix_map.submatrix(
-                    depths_.back().dimensions[dim].kernelMinusImage,
-                    currentDepth.dimensions[dim].kernelMinusImage);
+                    depths_.back().dimensions[dim].firstHomologyIndex,
+                    currentDepth.dimensions[dim].firstHomologyIndex);
             }
         }
 
         depths_.push_back(currentDepth);
     }
 
+    // Computes the barcode using Algorithm 2
     Barcode computeBarcode() {
         Barcode bcode;
         int n = depths_.size();
@@ -241,7 +228,7 @@ class Module {
     struct Dim {
         SMatrix<_N> R, R_inv;
         SMatrix<_N> inducedMap;
-        std::vector<size_t> kernelMinusImage;
+        size_t firstHomologyIndex;
     };
     struct Depth {
         std::vector<Dim> dimensions;

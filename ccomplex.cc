@@ -1,4 +1,5 @@
 #include "ccomplex.h"
+// file: ccomplex.cc
 
 #include <algorithm>
 #include <cassert>
@@ -47,8 +48,6 @@ CComplex CComplex::expand() const {
         // We only create the collapsing map if there are any simplices of the
         // same size
         if (level < expanded_complex.simplices_.size()) {
-            std::sort(expanded_complex.simplices_[level].begin(),
-                      expanded_complex.simplices_[level].end());
             for (auto& image : temp_collapsing) {
                 size_t pos = std::distance(
                     expanded_complex.simplices_[level].begin(),
@@ -60,16 +59,10 @@ CComplex CComplex::expand() const {
             expanded_complex.collapsingMaps_.push_back(final_collapsing);
         }
     }
-    // Finally we sort the ones that weren't sorted
-    for (size_t level = simplices_.size();
-         level < expanded_complex.simplices_.size(); level++) {
-        std::sort(expanded_complex.simplices_[level].begin(),
-                  expanded_complex.simplices_[level].end());
-    }
     return expanded_complex;
 }
 
-std::map<std::pair<size_t, size_t>, int> CComplex::getDifferentialMap(
+const std::map<std::pair<size_t, size_t>, int> CComplex::getDifferentialMap(
     size_t dim) const {
     assert(dim > 0);
 

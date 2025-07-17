@@ -1,6 +1,8 @@
 #pragma once
 /*
- * CSimplex header file
+ * file: csimplex.h
+ * description: class representing a cubical complex equipped with an
+ *      expand and checkSimplex operation
  */
 
 #include <map>
@@ -10,13 +12,17 @@
 
 namespace cubitos {
 
-class CChain;
+struct CChain;
 
 class CSimplex {
    public:
+    // Constructors
     CSimplex() {};
-    CSimplex(Point center, uint8_t depth, size_t dim);
+    CSimplex(Point center, size_t depth, size_t dim);
+
+    // Returns all possible simplex expansions
     std::vector<CSimplex> expansions(Region& region) const;
+    // Returns the image of the boundary map
     CChain differential() const;
 
     // Order relationship for std::map. Doesn't have any real meaning.
@@ -32,8 +38,7 @@ class CSimplex {
 #endif                                             // DEBUG
 
    private:
-    void expansionsRec(Region& region,
-                       std::vector<int>::const_iterator it,
+    void expansionsRec(Region& region, std::vector<int>::const_iterator it,
                        std::vector<CSimplex>& expansions,
                        std::vector<std::bitset<NUMBITS>>& coors,
                        size_t dim) const;
@@ -50,11 +55,12 @@ class CSimplex {
                                std::bitset<NUMBITS> offset, int k) const;
 
     Point center_;
-    uint8_t depth_;
+    size_t depth_;
     std::vector<int> directions_, nondirections_;
     std::vector<int> simplices;
 };
 
+// Element in a chain complex
 struct CChain {
     CChain();
     CChain& operator+=(CSimplex csimplex);

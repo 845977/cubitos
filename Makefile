@@ -4,11 +4,10 @@ CXX = g++
 CXX_STANDARD := -std=c++14
 CXX_FORMAT := clang-format
 LIBS = linbox
-CXXFLAGS = -Wall `pkg-config --cflags $(LIBS)`
+CXXFLAGS = -O3 -Wall `pkg-config --cflags $(LIBS)`
 LDFLAGS = `pkg-config --libs $(LIBS)`
 
 SRC = region.cc csimplex.cc point.cc ccomplex.cc barcode.cc
-INL = cubitos.inl
 HEADERS = smatrix.h cubitos.h module.h algorithms/reductions.h
 
 OBJ = $(SRC:.cc=.o)
@@ -20,13 +19,13 @@ FILE = cubitos
 main: $(HEADERS) $(OBJ) $(INL) main.o config.h
 	$(CXX) $(CXXFLAGS) -o $(FILE) main.o $(OBJ) $(LDFLAGS) 
 
-main.o: main.cc config.h $(HEADERS) $(INL)
+main.o: main.cc config.h $(HEADERS)
 
 %.o: %.cc %.h config.h
 	$(CXX) $(CXX_STANDARD) $(CXXFLAGS) -c $< -o $@
 
 format:
-	for file in *.cc *.h *.inl; do \
+	for file in *.cc *.h; do \
 		$(CXX_FORMAT) -i $$file ; \
 	done
 

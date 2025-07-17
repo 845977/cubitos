@@ -1,7 +1,7 @@
 #pragma once
-/*
- * This file describes bitset arithmetics that will be used later
- */
+// file: bitset_operators.h
+// description: defines bitset arithmetics that will be used for computing
+//              the complex
 
 template <std::size_t N>
 std::bitset<N> operator+(const std::bitset<N>& lhs,

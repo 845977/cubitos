@@ -1,6 +1,4 @@
-/*
- * CSimplex source file. Takes a recursive approach.
- */
+// file: csimplex.cc
 
 #include "csimplex.h"
 
@@ -8,7 +6,7 @@
 
 using namespace cubitos;
 
-CSimplex::CSimplex(Point center, uint8_t depth, size_t dim)
+CSimplex::CSimplex(Point center, size_t depth, size_t dim)
     : dim_(dim), center_(center), depth_(depth) {
     center_.directions(depth_, directions_, nondirections_);
 }
@@ -37,9 +35,9 @@ void CSimplex::expansionsRec(Region& region,
     } else {
         expansionsRec(region, it + 1, expansions, coors, dim);
         std::bitset<NUMBITS> previousValue = coors[*it];
-        coors[*it] += (BIGONE >> (depth_ + 1));
+        coors[*it] -= (BIGONE >> (depth_ + 1));
         expansionsRec(region, it + 1, expansions, coors, dim - 1);
-        coors[*it] = previousValue - (BIGONE >> (depth_ + 1));
+        coors[*it] = previousValue + (BIGONE >> (depth_ + 1));
         expansionsRec(region, it + 1, expansions, coors, dim - 1);
         coors[*it] = previousValue;
     }

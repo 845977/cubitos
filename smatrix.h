@@ -1,6 +1,7 @@
 #pragma once
-/* file: smatrix.h
- */
+// file: smatrix.h
+// description: Implements all matrix operations needed for linalg algorithms
+//              (chapter 3)
 
 #include <linbox/linbox-config.h>
 #include <linbox/matrix/transpose-matrix.h>
@@ -24,6 +25,7 @@ class SMatrix {
     SMatrix() : n_(0), m_(0), matrix_(field_, 0, 0) {}
     SMatrix(int n, int m) : n_(n), m_(m), matrix_(field_, n, m) {}
 
+    // Returns the identity matrix I_n
     static SMatrix<_N> identity(size_t n) {
         SMatrix id(n, n);
         for (size_t i = 0; i < n; i++) {
@@ -32,8 +34,10 @@ class SMatrix {
         return id;
     }
 
+    // Returns the null matrix
     static SMatrix<_N> zeroMatrix() { return SMatrix<_N>(0, 0); }
 
+    // Returns lhs * rhs
     static SMatrix<_N> mul(const SMatrix<_N>& lhs, const SMatrix<_N>& rhs) {
         if (lhs.isNull() || rhs.isNull()) {
             return zeroMatrix();
@@ -43,35 +47,40 @@ class SMatrix {
         return mat;
     }
 
+    // Whether this matrix is the null one
     bool isNull() const { return (n_ == 0 && m_ == 0); }
 
-    void insert(int i, int j, const Element& v) { matrix_.setEntry(i, j, v); }
+    inline void insert(int i, int j, const Element& v) {
+        matrix_.setEntry(i, j, v);
+    }
 
-    void add(int i, int j, const Element& v) {
+    inline void add(int i, int j, const Element& v) {
         auto& elem = matrix_.refEntry(i, j);
         elem += v;
     }
 
-    void sub(int i, int j, const Element& v) {
+    inline void sub(int i, int j, const Element& v) {
         auto& elem = matrix_.refEntry(i, j);
         elem -= v;
     }
 
-    const Element& get(int i, int j) const { return matrix_.getEntry(i, j); }
+    const inline Element& get(int i, int j) const {
+        return matrix_.getEntry(i, j);
+    }
 
-    void scaleRow(size_t row, const Element& elm) {
+    inline void scaleRow(size_t row, const Element& elm) {
         for (size_t i = 0; i < m_; i++) {
             field_.mulin(matrix_.refEntry(row, i), elm);
         }
     }
 
-    void scaleCol(size_t col, const Element& elm) {
+    inline void scaleCol(size_t col, const Element& elm) {
         for (size_t j = 0; j < n_; j++) {
             field_.mulin(matrix_.refEntry(j, col), elm);
         }
     }
 
-    void colSwap(size_t col1, size_t col2) {
+    inline void colSwap(size_t col1, size_t col2) {
         for (size_t i = 0; i < n_; i++) {
             Element aux = matrix_.getEntry(i, col1);
             matrix_.setEntry(i, col1, matrix_.getEntry(i, col2));
@@ -79,7 +88,7 @@ class SMatrix {
         }
     }
 
-    void rowSwap(size_t row1, size_t row2) {
+    inline void rowSwap(size_t row1, size_t row2) {
         for (size_t j = 0; j < m_; j++) {
             Element aux = matrix_.getEntry(row1, j);
             matrix_.setEntry(row1, j, matrix_.getEntry(row2, j));
@@ -87,98 +96,36 @@ class SMatrix {
         }
     }
 
-    void colCombine(size_t addTo, size_t scaleCol, const Element& scaleAmt) {
+    inline void colCombine(size_t addTo, size_t scaleCol,
+                           const Element& scaleAmt) {
         for (size_t i = 0; i < n_; i++) {
             field_.axpyin(matrix_.refEntry(i, addTo),
                           matrix_.getEntry(i, scaleCol), scaleAmt);
         }
     }
 
-    void rowCombine(size_t addTo, size_t scaleRow, const Element& scaleAmt) {
+    inline void rowCombine(size_t addTo, size_t scaleRow,
+                           const Element& scaleAmt) {
         for (size_t j = 0; j < m_; j++) {
             field_.axpyin(matrix_.refEntry(addTo, j),
                           matrix_.getEntry(scaleRow, j), scaleAmt);
         }
     }
 
-    // Pivots of a row echelonized matrix
-    std::vector<size_t> pivots() {
-        std::vector<size_t> ret;
+    inline void rightMulIn(const SMatrix<_N>& rhs) { *this = mul(*this, rhs); }
 
-        for (size_t i = 0, j = 0; i < n_ && j < m_; i++) {
-            for (size_t notNullCol = j;; notNullCol++) {
-                if (notNullCol == m_) {
-                    return ret;
-                }
-                if (!field_.isZero(matrix_.getEntry(i, notNullCol))) {
-                    ret.push_back(i);
-                    j = notNullCol + 1;
-                    break;
-                }
+    inline void leftMulIn(const SMatrix<_N>& lhs) { *this = mul(lhs, *this); }
+
+    // Pre: firstRow < n_ && firstCol < m_
+    SMatrix<_N> submatrix(size_t firstRow, size_t firstCol) {
+        SMatrix<_N> mat(n_ - firstRow, m_ - firstCol);
+        for (size_t i = firstRow; i < n_; i++) {
+            for (size_t j = firstCol; j < m_; j++) {
+                mat.insert(i - firstRow, j - firstCol, get(i, j));
             }
         }
-
-        return ret;
-    }
-
-    std::vector<size_t> emptyCols() {
-        std::vector<size_t> ret;
-        for (size_t j = 0; j < m_; j++) {
-            for (size_t i = 0; i < n_; i++) {
-                if (!field_.isZero(matrix_.getEntry(i, j))) {
-                    goto Skip;
-                }
-            }
-            ret.push_back(j);
-        Skip:
-            continue;
-        }
-        return ret;
-    }
-
-    SMatrix<_N> getCol(const size_t col) {
-        SMatrix<_N> column(n_, 1);
-        for (size_t i = 0; i < n_; i++) {
-            column.matrix_.setEntry(i, 0, matrix_.getEntry(i, col));
-        }
-        return column;
-    }
-
-    SMatrix<_N> transpose() const {
-        SMatrix<_N> ret(m_, n_);
-        for (size_t i = 0; i < n_; i++) {
-            for (size_t j = 0; j < m_; j++) {
-                ret.matrix_.setEntry(j, i, matrix_.getEntry(i, j));
-            }
-        }
-        return ret;
-    }
-
-    SMatrix<_N> submatrix(std::vector<size_t> rows, std::vector<size_t> cols) {
-        SMatrix<_N> mat(rows.size(), cols.size());
-        for (size_t i = 0; i < rows.size(); i++) {
-            for (size_t j = 0; j < cols.size(); j++) {
-                mat.insert(i, j, get(rows[i], cols[j]));
-            }
-        }
-
         return mat;
     }
-
-    SMatrix<_N> submatrixCols(std::vector<size_t> cols) {
-        SMatrix<_N> mat(n_, cols.size());
-        for (size_t i = 0; i < n_; i++) {
-            for (size_t j = 0; j < cols.size(); j++) {
-                mat.insert(i, j, get(i, cols[j]));
-            }
-        }
-
-        return mat;
-    }
-
-    void rightMulIn(const SMatrix<_N>& rhs) { *this = mul(*this, rhs); }
-
-    void leftMulIn(const SMatrix<_N>& lhs) { *this = mul(lhs, *this); }
 
     size_t rank() {
         if (isNull()) {
@@ -193,35 +140,30 @@ class SMatrix {
         if (isNull()) {
             return 0;
         }
-        return m_ - rank();
+        size_t r;
+        LinBox::rank(r, matrix_);
+        return m_ - r;
     }
 
-    /* All column reduction algorithms */
+    // All templated reduction algorithms
     template <size_t _M, bool _EnableComplementary>
-    friend void rowReduce(SMatrix<_M>& A, SMatrix<_M>& B, SMatrix<_M>& P,
-                          SMatrix<_M>& P_inv);
+    friend void rowReduce(SMatrix<_M>& A, SMatrix<_M>* B, SMatrix<_M>& P,
+                          SMatrix<_M>& P_inv, size_t& i);
     template <size_t _M, bool _EnableComplementary>
-    friend void columnReduce(SMatrix<_M>& A, SMatrix<_M>& B, SMatrix<_M>& Q,
-                             SMatrix<_M>& Q_inv);
+    friend void columnReduce(SMatrix<_M>& A, SMatrix<_M>* B, SMatrix<_M>& Q,
+                             SMatrix<_M>& Q_inv, size_t& j);
 
+    // The ones that are actually used
     template <size_t _M>
-    friend void rowReduce(SMatrix<_M>& A, SMatrix<_M>& B, SMatrix<_M>& P,
-                          SMatrix<_M>& P_inv);
-
-    template <size_t _M>
-    friend void rowReduce(SMatrix<_M>& A, SMatrix<_M>& P, SMatrix<_M>& P_inv);
-
-    template <size_t _M>
-    friend void columnReduce(SMatrix<_M>& A, SMatrix<_M>& B, SMatrix<_M>& Q,
-                             SMatrix<_M>& Q_inv);
-
+    friend void rowReduce(SMatrix<_M>& A, SMatrix<_M>& P, SMatrix<_M>& P_inv,
+                          size_t& firstHomologyIndex);
     template <size_t _M>
     friend void columnReduce(SMatrix<_M>& A, SMatrix<_M>& Q,
-                             SMatrix<_M>& Q_inv);
-
+                             SMatrix<_M>& Q_inv, size_t& firstHomologyIndex);
     template <size_t _M>
     friend void simultaneousReduce(SMatrix<_M>& A, SMatrix<_M>& B,
-                                   SMatrix<_M>& R, SMatrix<_M>& R_inv);
+                                   SMatrix<_M>& R, SMatrix<_M>& R_inv,
+                                   size_t& firstHomologyIndex);
 
 #ifdef DEBUG
     friend std::ostream& operator<<(std::ostream& out,

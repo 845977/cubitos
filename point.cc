@@ -1,4 +1,5 @@
 #include "point.h"
+// file: point.cc
 
 using namespace cubitos;
 
@@ -43,8 +44,7 @@ bool Point::operator==(const Point& rhs) const {
 
 bool Point::operator!=(const Point& rhs) const { return !(*this == rhs); }
 
-Point Point::truncate(uint8_t n) const {
-    ;
+Point Point::truncate(size_t n) const {
     std::vector<std::bitset<NUMBITS>> coors;
     for (auto x : coors_) {
         coors.push_back(x >> (NUMBITS - n) << (NUMBITS - n));
@@ -52,34 +52,10 @@ Point Point::truncate(uint8_t n) const {
     return Point(coors);
 }
 
-Point Point::makeCenter(uint8_t depth) const {
-    std::vector<std::bitset<NUMBITS>> coors;
-    uint8_t shift = NUMBITS - depth;
-    std::bitset<NUMBITS> half = SMALLONE << (shift - 1);
-    for (auto x : coors_) {
-        coors.push_back(x >> shift << shift | half);
-    }
-    return Point(coors);
-}
-
-bool Point::hasCenter(const Point& center, uint8_t depth) const {
-    auto x = coors_.begin();
-    auto y = center.coors_.begin();
-    uint8_t shift = NUMBITS - depth;
-    while (x != coors_.end()) {
-        if ((*x >> shift << shift) != (*y >> shift << shift)) {
-            return false;
-        }
-        x++;
-        y++;
-    }
-    return true;
-}
-
-bool Point::equalsTruncated(const Point& rhs, uint8_t depth) const {
+bool Point::equalsTruncated(const Point& rhs, size_t depth) const {
     auto x = coors_.begin();
     auto y = rhs.coors_.begin();
-    uint8_t shift = NUMBITS - depth;
+    size_t shift = NUMBITS - depth;
     while (x != coors_.end()) {
         if ((*x >> shift << shift) != *y) {
             return false;
@@ -90,7 +66,7 @@ bool Point::equalsTruncated(const Point& rhs, uint8_t depth) const {
     return true;
 }
 
-void Point::directions(uint8_t depth, std::vector<int>& directions,
+void Point::directions(size_t depth, std::vector<int>& directions,
                        std::vector<int>& nondirections) const {
     std::bitset<NUMBITS> oneOne = (BIGONE >> depth);
     for (size_t i = 0; i < coors_.size(); i++) {
@@ -103,7 +79,7 @@ void Point::directions(uint8_t depth, std::vector<int>& directions,
 }
 
 // Pre: It's a center
-uint8_t Point::depthAsCenter() const {
+size_t Point::depthAsCenter() const {
     for (int i = 0; i < NUMBITS; i++) {
         bool centerFound = true;
         for (auto coor : coors_) {
